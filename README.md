@@ -1,0 +1,1 @@
+# nagios-osd10-installer
