@@ -105,8 +105,10 @@
 
 
 - name: Check if Service Exists
-  shell: "sudo systemctl | grep httpd"
+  shell: systemctl | grep httpd
+  become: yes
   register: service_httpd_exists
+
 
 - name: Enable httpd service
   become: yes

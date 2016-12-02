@@ -1,10 +1,10 @@
 ---
 
-- name : install nagios
-  hosts: localhost
-  connection: local
-  roles:
-    - install_nagios
+#- name : install nagios
+#  hosts: localhost
+#  connection: local
+#  roles:
+#    - install_nagios
 
 - name : install nagios
   hosts: controller
