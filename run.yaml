@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  gather_facts: false
+
+pre_tasks:
+    - name : store controller host variables
+      shell: >
+        source ~/stackrc;
+        nova list | grep controller | awk '{print $4  $12}' | sed  's/ctlplane=/.localadmin /g'
+      register: controller_hostname_list
+
+    - name : store controller host variables
+      shell: >
+        source ~/stackrc;
+        nova list | grep compute | awk '{print $4  $12}' | sed  's/ctlplane=/.localadmin /g'
+      register: compute_hostname_list
+
+    - name : get contoller ip
+      shell: >
+        source ~/stackrc;
+        echo nova list | grep controller | awk '{print $12}' | cut -d "=" -f 2;
+        nova list | grep controller | awk '{print $12}' | cut -d "=" -f 2
+      register: controller_list 
+
+    - debug: var=controller_list.stdout_lines
+
+    - name : get compute  ip
+      shell: >
+        source ~/stackrc;
+        nova list | grep compute | awk '{print $12}' | cut -d "=" -f 2
+      register: compute_list 
+
+
+    - name: add controller nodes to controllers host group
+      add_host:
+        name: "{{item}}" 
+        groups: controllers
+      with_items: "{{controller_list.stdout_lines}}"
+
+    - name: add compute nodes to compute host group
+      add_host:
+        name: "{{item}}" 
+        groups: compute
+      with_items: "{{compute_list.stdout_lines}}"
+   
+    
+    
+- hosts: controllers
+  gather_facts: False
+  tasks:
+    - name: Copy overcloudrc to controllers
+      # Copy a new "ntp.conf file into place, backing up the original if it differs from the copied version
+      copy: src=~/overcloudrc dest=~/overcloudrc mode=644 backup=yes
+      remote_user: heat-admin
+
+- hosts: compute
+  gather_facts: False
+  tasks:
+    - name: Copy overcloudrc to compute nodes
+      copy: src=~/overcloudrc dest=~/overcloudrc mode=644 backup=yes
+      remote_user: heat-admin
