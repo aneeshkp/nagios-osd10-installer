@@ -7,7 +7,7 @@
 #    - install_nagios
 
 - name : install nagios
-  hosts: controller
+  hosts: controllers
   remote_user: heat-admin
   roles:
     - install_nagios
