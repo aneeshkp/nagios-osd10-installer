@@ -1,0 +1,131 @@
+---
+- name: install git and pip
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=present"
+  with_items:
+   - git
+   - httpd
+   - php
+   - gcc
+   - glibc
+   - glibc-common
+   - gd
+   - gd-devel
+   - make
+   - net-snmp
+   - unzip
+  become: true 
+
+
+- name: install passlib for htpasswd module
+  shell: >
+   pip install passlib
+  become: true
+
+
+- name: Add ngcmd group
+  group: name=nagcmd state=present
+  become: true
+
+- name: Add nagios group
+  group: name=nagios state=present
+  become: true
+
+- name: Create Nagios User and Group
+  user : name=nagios password=nagios groups=nagios,nagcmd append=yes
+  become: true
+
+- name: APPEND APACHED TO NAGCMD GROUP
+  user : name=apache group=nagcmd append=yes
+  become: true
+
+
+- name: Creates directory
+  file: path=/root/nagios state=directory
+  become: true
+
+- name: Download Nagios Core and Plugins
+  shell: >
+    cd /root/nagios;
+    wget http://prdownloads.sourceforge.net/sourceforge/nagios/nagios-4.2.0.tar.gz;
+    wget https://www.nagios-plugins.org/download/nagios-plugins-2.1.2.tar.gz
+  become: true
+
+
+- name: Extract Nagios Core and Plugins
+  shell: >
+    cd /root/nagios;
+    tar -xvf nagios-4.2.0.tar.gz;
+    tar -xvf nagios-plugins-2.1.2.tar.gz
+  become: true
+
+- name: Configure Nagios Core
+  shell: >
+    cd /root/nagios/nagios-4.2.0;
+    ./configure --with-command-group=nagcmd
+  become: true
+
+- name: Make and Install Nagios Core
+  shell: >
+    cd /root/nagios/nagios-4.2.0;
+    make clean all;
+    make install;
+    make install-init;
+    make install-commandmode;
+    make install-config
+  become: true
+
+- name: Make and Install Nagios Web Interface
+  shell: >
+    cd /root/nagios/nagios-4.2.0;
+    make install-webconf
+  become: true
+
+- name: Create nagiosadmin user in htpasswd
+  htpasswd:
+    path: /usr/local/nagios/etc/htpasswd.users
+    name: nagiosadmin
+    password: redhat
+  become: true
+
+- name: Compile and Install Nagios Plugin
+  shell: >
+    cd /root/nagios/nagios-plugins-2.1.2;
+    ./configure --with-nagios-user=nagios --with-nagios-group=nagios;
+    make clean all;
+    make install;
+    /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+  become: true
+
+- name: Enable nagios service
+  become: yes
+  command: systemctl enable nagios
+
+- name: Enable httpd service
+  become: yes
+  command: systemctl enable httpd
+
+
+- name: Check if Service Exists
+  shell: systemctl | grep httpd
+  become: yes
+  register: service_httpd_exists
+  ignore_errors: true
+
+
+- name: Enable httpd service
+  become: yes
+  command: systemctl reload httpd
+  when: service_httpd_exists != ""
+  ignore_errors: true
+
+- name: Start httpd service
+  become: yes
+  command: systemctl start httpd
+  when: service_httpd_exists == ""
+  ignore_errors: true
+
+- name: Start nagios service
+  become: yes
+  command: systemctl start nagios
+
+
