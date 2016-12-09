@@ -23,12 +23,12 @@
     marker: '# {mark} nagios marker'
     block: |
       listen nagios
-        bind  {{haproxy_ip_address}}:54321 transparent
+        bind  {{haproxy_ip_address.stdout}}:54321 transparent
   become: true
 
 - name: insert/update nagios block in /tmp/haproxy/haproxy.cfg
   blockinfile:
-    dest: "{{haproxy_config}}"
+    dest: "{{haproxy_config.stdout}}"
     marker: "#DELETE#"
     insertbefore : '# END nagios marker'
     block: |
